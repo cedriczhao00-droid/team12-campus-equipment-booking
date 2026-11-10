@@ -1,10 +1,10 @@
 # Campus Equipment Booking and Waitlist System
 
-Software Engineering course project · Team 12 · Macau University of Science and Technology
+Software Engineering course project by Team 12 at Macau University of Science and Technology.
 
 ## Project status
 
-The prototype supports direct booking, cancellation before the slot starts, and a FIFO waitlist. Cancellation offers the slot to the first eligible student. The offer lasts up to 30 minutes and ends at the slot start if that comes first. A decline or expiry passes the offer to the next eligible student. Bookings, queue order and offers survive a restart.
+The prototype lets students book an available slot, cancel before it starts, or join a FIFO waiting list. After a cancellation, the first eligible student gets an offer. The offer lasts up to 30 minutes, or until the slot starts if that is sooner. If the student declines or the offer expires, it goes to the next eligible student. Bookings, queue order and offers are saved when the server restarts.
 
 ## Run the prototype
 
@@ -16,7 +16,7 @@ javac --release 17 -encoding UTF-8 -d build $sources
 java -cp build campus.Main
 ```
 
-Open <http://127.0.0.1:8080>. Book a future slot as Student A. Select Students B and C in turn and join the waitlist for that slot. Cancel the booking as A, then select B to see the offer and its deadline under **Your waitlist**. Decline as B and check that C receives the next offer. The app binds to localhost and saves demo data in `data/bookings.tsv`. Run one server instance per data file.
+Open <http://127.0.0.1:8080> and book a future slot as Student A. Switch to Students B and C and join the waiting list for the same slot. Switch back to A and cancel the booking. B can then see the offer and deadline under **Your waitlist**. If B declines, C receives the next offer. The app runs on localhost and saves demo data in `data/bookings.tsv`. Run one server instance per data file.
 
 Run the booking checks after compiling the application:
 
@@ -27,17 +27,17 @@ java -cp build campus.BookingServiceTest
 java -cp build campus.WaitlistTest
 ```
 
-`Main` handles browser requests, `BookingPage` renders the schedule, `BookingService` manages allocations, and `BookingStore` saves records together. The demo uses selectable student profiles. Real sign-in, organizer controls, handover and a separate notification history are planned for later milestones.
+`Main` handles browser requests, `BookingPage` displays the schedule, `BookingService` manages bookings and offers, and `BookingStore` saves the records. The demo uses selectable student profiles. We still plan to add sign-in, organizer controls, handover and a separate notification history.
 
 ## The problem
 
-In a group chat, equipment requests and cancellation messages can get buried. Students may struggle to tell whether an item is available or miss a slot they were waiting for. Organizers have to keep a separate record and contact students when bookings change.
+In a group chat, equipment requests and cancellations can get buried. Students may not know which items are free or notice when a slot opens. Organizers have to keep records and contact students themselves.
 
 ## What we plan to build
 
-A browser-based system where students can check equipment availability, book a slot, or join a waiting list. Organizers will manage the schedule and review booking changes in the same service.
+We are building a browser-based system where students can check availability, book a slot and join a waiting list. Organizers will use it to manage the schedule and review booking changes.
 
-When someone cancels, the system will offer the slot to the next eligible student on the waiting list. It will hold the slot until that student accepts, declines, or misses the deadline. A declined or expired offer will pass to the next student.
+When someone cancels, the system offers the slot to the next eligible student. It holds the slot until that student accepts, declines or misses the deadline. If the offer is declined or expires, the system passes it to the next eligible student.
 
 ## Planned features
 
@@ -49,7 +49,7 @@ When someone cancels, the system will offer the slot to the next eligible studen
 
 ## Initial scope
 
-We start with one campus club or laboratory, track each item separately, and use fixed booking slots. The Task 2 requirements describe the project's borrowing rules. The project scope excludes payments, smart locks, equipment delivery, and university account integration.
+We start with one campus club or laboratory, track each item separately and use fixed booking slots. The Task 2 requirements describe our borrowing rules. Payments, smart locks, equipment delivery and university account integration are outside the project scope.
 
 ## Team
 
@@ -59,4 +59,4 @@ We start with one campus club or laboratory, track each item separately, and use
 
 ## How we will work
 
-We plan to keep code in GitHub, work on feature branches, and review changes through pull requests. Weekly progress reports will be shared in Feishu. Each report will state what each member actually contributed.
+We keep our code on GitHub and work on feature branches. We plan to review changes through pull requests and share weekly progress reports in Feishu, including each member's actual contributions.
