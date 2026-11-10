@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class BookingStore {
+    record State(List<Booking> bookings, List<QueueEntry> queue) {}
     private final Path file;
 
     BookingStore(Path file) {
@@ -17,33 +18,52 @@ final class BookingStore {
     }
 
     List<Booking> load() throws IOException {
+        return loadState().bookings();
+    }
+
+    State loadState() throws IOException {
         if (Files.notExists(file)) {
-            return List.of();
+            return new State(List.of(), List.of());
         }
         List<Booking> bookings = new ArrayList<>();
+        List<QueueEntry> queue = new ArrayList<>();
         for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
             String[] fields = line.split("\t", -1);
-            if (fields.length != 5) {
-                throw new IOException("Invalid booking data in " + file);
-            }
             try {
-                bookings.add(new Booking(fields[0], fields[1], fields[2],
-                        Instant.parse(fields[3]), Instant.parse(fields[4])));
+                if (fields.length == 6 && fields[0].equals("Q")) {
+                    queue.add(new QueueEntry(fields[1], fields[2], fields[3],
+                            QueueStatus.valueOf(fields[4]), optionalTime(fields[5])));
+                } else if (fields.length == 5 || fields.length == 6) {
+                    bookings.add(new Booking(fields[0], fields[1], fields[2],
+                            Instant.parse(fields[3]), Instant.parse(fields[4]),
+                            fields.length == 6 ? optionalTime(fields[5]) : null));
+                } else {
+                    throw new IllegalArgumentException("Unexpected field count");
+                }
             } catch (RuntimeException ex) {
                 throw new IOException("Invalid booking data in " + file, ex);
             }
         }
-        return bookings;
+        return new State(List.copyOf(bookings), List.copyOf(queue));
     }
 
-    void save(List<Booking> bookings) throws IOException {
+    private Instant optionalTime(String value) {
+        return value.isEmpty() ? null : Instant.parse(value);
+    }
+
+    void save(List<Booking> bookings, List<QueueEntry> queue) throws IOException {
         Files.createDirectories(file.getParent());
         Path temporary = Files.createTempFile(file.getParent(), "bookings-", ".tmp");
         try {
             List<String> lines = new ArrayList<>();
             for (Booking booking : bookings) {
                 lines.add(String.join("\t", booking.reference(), booking.student(), booking.slotId(),
-                        booking.start().toString(), booking.end().toString()));
+                        booking.start().toString(), booking.end().toString(),
+                        booking.cancelledAt() == null ? "" : booking.cancelledAt().toString()));
+            }
+            for (QueueEntry entry : queue) {
+                lines.add(String.join("\t", "Q", entry.id(), entry.student(), entry.slotId(),
+                        entry.status().name(), entry.deadline() == null ? "" : entry.deadline().toString()));
             }
             Files.write(temporary, lines, StandardCharsets.UTF_8);
             Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);

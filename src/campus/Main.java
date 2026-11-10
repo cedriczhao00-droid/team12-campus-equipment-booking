@@ -14,9 +14,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public final class Main {
-    private static final Set<String> STUDENTS = Set.of("student-a", "student-b");
+    private static final Set<String> STUDENTS = Set.of("student-a", "student-b", "student-c");
+    private static final Set<String> ACTIONS = Set.of("/book", "/cancel", "/join", "/accept", "/leave");
 
     public static void main(String[] args) throws IOException {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
@@ -28,6 +30,13 @@ public final class Main {
         server.setExecutor(Executors.newFixedThreadPool(8));
         server.createContext("/", exchange -> handle(exchange, clock, schedule, service));
         server.start();
+        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(() -> {
+            try {
+                service.refreshOffers();
+            } catch (IOException ex) {
+                System.err.println("Could not update expired offers: " + ex.getMessage());
+            }
+        }, 1, 1, TimeUnit.SECONDS);
         System.out.println("Campus Equipment Desk: http://127.0.0.1:" + server.getAddress().getPort());
     }
 
@@ -37,6 +46,12 @@ public final class Main {
             String route = exchange.getRequestURI().getPath();
             String method = exchange.getRequestMethod();
             if (route.equals("/") && method.equals("GET")) {
+                try {
+                    service.refreshOffers();
+                } catch (IOException ex) {
+                    send(exchange, 503, "text/plain", "The schedule could not be refreshed. Try again.");
+                    return;
+                }
                 Map<String, String> query = form(exchange.getRequestURI().getRawQuery());
                 LocalDate today = LocalDate.now(clock);
                 LocalDate date = selectedDate(query.get("date"), today);
@@ -46,12 +61,12 @@ public final class Main {
                 }
                 BookingResult result = findResult(query.get("result"));
                 send(exchange, 200, "text/html", BookingPage.render(date, today, student, result, schedule, service));
-            } else if (route.equals("/book") && method.equals("POST")) {
-                book(exchange, clock, service);
+            } else if (ACTIONS.contains(route) && method.equals("POST")) {
+                changeAllocation(exchange, clock, service, route);
             } else if (route.equals("/style.css") && method.equals("GET")) {
                 send(exchange, 200, "text/css", BookingPage.STYLE);
-            } else if (route.equals("/") || route.equals("/book") || route.equals("/style.css")) {
-                exchange.getResponseHeaders().set("Allow", route.equals("/book") ? "POST" : "GET");
+            } else if (route.equals("/") || ACTIONS.contains(route) || route.equals("/style.css")) {
+                exchange.getResponseHeaders().set("Allow", ACTIONS.contains(route) ? "POST" : "GET");
                 send(exchange, 405, "text/plain", "Method not allowed.");
             } else {
                 send(exchange, 404, "text/plain", "Page not found.");
@@ -59,7 +74,8 @@ public final class Main {
         }
     }
 
-    private static void book(HttpExchange exchange, Clock clock, BookingService service) throws IOException {
+    private static void changeAllocation(HttpExchange exchange, Clock clock, BookingService service,
+                                         String route) throws IOException {
         byte[] body = exchange.getRequestBody().readNBytes(4097);
         if (body.length > 4096) {
             send(exchange, 413, "text/plain", "Booking request is too large.");
@@ -73,7 +89,14 @@ public final class Main {
         }
         BookingResult result;
         try {
-            result = service.book(student, fields.get("slot"));
+            result = switch (route) {
+                case "/book" -> service.book(student, fields.get("slot"));
+                case "/cancel" -> service.cancel(student, fields.get("reference"));
+                case "/join" -> service.join(student, fields.get("slot"));
+                case "/accept" -> service.resolve(student, fields.get("entry"), true);
+                case "/leave" -> service.resolve(student, fields.get("entry"), false);
+                default -> throw new IllegalArgumentException("Unexpected action");
+            };
         } catch (IOException ex) {
             System.err.println("Could not save booking: " + ex.getMessage());
             send(exchange, 503, "text/plain", "The booking could not be saved. Try again.");

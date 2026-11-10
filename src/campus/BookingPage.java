@@ -24,6 +24,7 @@ final class BookingPage {
                 .append("'></label><label>Demo student<select name='student'>");
         appendOption(page, student, "student-a", "Student A");
         appendOption(page, student, "student-b", "Student B");
+        appendOption(page, student, "student-c", "Student C");
         page.append("</select></label><button class='primary' type='submit'>View schedule</button></form>");
 
         if (result != null) {
@@ -31,17 +32,20 @@ final class BookingPage {
         }
         page.append("<section aria-labelledby='schedule'><div class='schedule-title'><h2 id='schedule'>")
                 .append(date.format(DATE)).append("</h2><span>Macao time</span></div>");
+        var active = service.activeBookingsFor(student);
+        var entries = service.entriesFor(student);
         for (Equipment item : schedule.equipment()) {
             page.append("<article class='equipment'><div class='item'><span class='asset'>").append(item.id())
                     .append("</span><h3>").append(item.name()).append("</h3><p>").append(item.category())
                     .append(" / ").append(item.pickupPoint()).append("</p></div><ul class='slots'>");
             for (Slot slot : schedule.slotsFor(item, date)) {
-                appendSlot(page, date, student, slot, service.status(slot));
+                boolean ownAllocation = active.stream().anyMatch(b -> b.slotId().equals(slot.id()))
+                        || entries.stream().anyMatch(e -> e.slotId().equals(slot.id()));
+                appendSlot(page, date, student, slot, service.status(slot), ownAllocation);
             }
             page.append("</ul></article>");
         }
         page.append("</section><section class='bookings'><h2>Your active bookings</h2>");
-        var active = service.activeBookingsFor(student);
         if (active.isEmpty()) {
             page.append("<p>Choose an available slot above to make a booking.</p>");
         } else {
@@ -52,8 +56,37 @@ final class BookingPage {
                     page.append("<li><strong>").append(slot.equipment().name()).append("</strong> · ")
                             .append(booking.start().atZone(DemoSchedule.ZONE).toLocalDate().format(DATE))
                             .append(" · ").append(TIME.format(booking.start())).append("–")
-                            .append(TIME.format(booking.end())).append("</li>");
+                            .append(TIME.format(booking.end()));
+                    if (booking.start().isAfter(service.now())) {
+                        action(page, "/cancel", date, student, "reference", booking.reference(), "Cancel booking");
+                    }
+                    page.append("</li>");
                 }
+            }
+            page.append("</ul>");
+        }
+        page.append("</section><section class='bookings'><h2>Your waitlist</h2>");
+        if (entries.isEmpty()) {
+            page.append("<p>No active waitlist entries. You can join the waitlist for a reserved slot.</p>");
+        } else {
+            page.append("<ul>");
+            for (QueueEntry entry : entries) {
+                Slot slot = schedule.findSlot(entry.slotId());
+                if (slot == null) continue;
+                page.append("<li><strong>").append(slot.equipment().name()).append("</strong> · ")
+                        .append(slot.start().atZone(DemoSchedule.ZONE).toLocalDate().format(DATE))
+                        .append(" · ").append(TIME.format(slot.start()));
+                if (entry.status() == QueueStatus.OFFERED) {
+                    page.append(" · Offer expires at ")
+                            .append(DateTimeFormatter.ofPattern("d MMM HH:mm:ss", Locale.ENGLISH)
+                                    .withZone(DemoSchedule.ZONE).format(entry.deadline()));
+                    action(page, "/accept", date, student, "entry", entry.id(), "Accept offer");
+                    action(page, "/leave", date, student, "entry", entry.id(), "Decline offer");
+                } else {
+                    page.append(" · Position ").append(service.position(entry));
+                    action(page, "/leave", date, student, "entry", entry.id(), "Leave waitlist");
+                }
+                page.append("</li>");
             }
             page.append("</ul>");
         }
@@ -68,7 +101,8 @@ final class BookingPage {
         page.append(">").append(label).append("</option>");
     }
 
-    private static void appendSlot(StringBuilder page, LocalDate date, String student, Slot slot, BookingStatus status) {
+    private static void appendSlot(StringBuilder page, LocalDate date, String student, Slot slot,
+                                   BookingStatus status, boolean ownAllocation) {
         String time = TIME.format(slot.start()) + "–" + TIME.format(slot.end());
         page.append("<li><time>").append(time).append("</time>");
         if (status == BookingStatus.AVAILABLE) {
@@ -80,13 +114,26 @@ final class BookingPage {
         } else {
             String label = switch (status) {
                 case RESERVED -> "Reserved";
+                case HELD -> "Held for waitlist";
                 case CLOSED -> "Closed";
                 case OUTSIDE_WINDOW -> "Opens later";
                 default -> throw new IllegalArgumentException("Unexpected slot status");
             };
             page.append("<span class='unavailable'>").append(label).append("</span>");
+            if (!ownAllocation && (status == BookingStatus.RESERVED || status == BookingStatus.HELD)) {
+                action(page, "/join", date, student, "slot", slot.id(), "Join waitlist");
+            }
         }
         page.append("</li>");
+    }
+
+    private static void action(StringBuilder page, String path, LocalDate date, String student,
+                               String field, String value, String label) {
+        page.append("<form class='allocation-action' action='").append(path).append("' method='post'>")
+                .append("<input type='hidden' name='date' value='").append(date)
+                .append("'><input type='hidden' name='student' value='").append(student)
+                .append("'><input type='hidden' name='").append(field).append("' value='").append(value)
+                .append("'><button type='submit'>").append(label).append("</button></form>");
     }
 
     static final String STYLE = """
@@ -103,7 +150,8 @@ final class BookingPage {
             .filters { display:flex; flex-wrap:wrap; align-items:end; gap:.75rem; margin:1rem 0 1.5rem; }
             label { display:grid; gap:.25rem; font-weight:bold; font-size:.9rem; }
             input,select,button { font:inherit; padding:.48rem .65rem; color:inherit; border:1px solid var(--line); border-radius:.28rem; background:white; }
-            button { font-weight:bold; cursor:pointer; background:var(--green); border-color:#a7c584; white-space:nowrap; }
+            button { font-weight:bold; cursor:pointer; background:var(--green); border-color:#a7c584; }
+            .bookings .allocation-action { display:inline-block; margin:.25rem .4rem; }
             button:hover { background:#c8e5a2; } .primary { background:var(--navy); border-color:var(--navy); color:white; }
             .primary:hover { background:#244c66; }
             :focus-visible { outline:3px solid #096bac; outline-offset:2px; }

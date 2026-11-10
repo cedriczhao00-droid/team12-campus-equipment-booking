@@ -4,9 +4,9 @@ Software Engineering course project · Team 12 · Macau University of Science an
 
 ## Project status
 
-The first runnable milestone covers the equipment catalog, date-based availability, and direct booking. It uses sample equipment and two demo students. A saved booking remains after a restart. The server checks for occupied slots, personal time overlaps, the three-active-booking limit, and the 14-day booking window before it writes a booking.
+The prototype supports direct booking, cancellation before the slot starts, and a FIFO waitlist. Cancellation offers the slot to the first eligible student. The offer lasts up to 30 minutes and ends at the slot start if that comes first. A decline or expiry passes the offer to the next eligible student. Bookings, queue order and offers survive a restart.
 
-## Run the first milestone
+## Run the prototype
 
 Use Java 17 or later. From the repository root in PowerShell:
 
@@ -16,16 +16,18 @@ javac --release 17 -encoding UTF-8 -d build $sources
 java -cp build campus.Main
 ```
 
-Open <http://127.0.0.1:8080>. Select a date and demo student, then click **Book slot**. Change to the other demo student and view the same schedule to see the reserved slot. The app binds to localhost and saves demo data in `data/bookings.tsv`. Run only one server instance per data file.
+Open <http://127.0.0.1:8080>. Book a future slot as Student A. Select Students B and C in turn and join the waitlist for that slot. Cancel the booking as A, then select B to see the offer and its deadline under **Your waitlist**. Decline as B and check that C receives the next offer. The app binds to localhost and saves demo data in `data/bookings.tsv`. Run one server instance per data file.
 
 Run the booking checks after compiling the application:
 
 ```powershell
-javac --release 17 -encoding UTF-8 -cp build -d build test/campus/BookingServiceTest.java
+$tests = Get-ChildItem -LiteralPath test/campus -Filter '*.java' | ForEach-Object FullName
+javac --release 17 -encoding UTF-8 -cp build -d build $tests
 java -cp build campus.BookingServiceTest
+java -cp build campus.WaitlistTest
 ```
 
-`Main` handles browser requests, `BookingPage` renders the schedule, `BookingService` checks and commits bookings, and `BookingStore` saves records. Account sign-in, organizer controls, cancellation, waitlist offers and handover are planned for later milestones. In the demo, a booking counts as active until its slot ends.
+`Main` handles browser requests, `BookingPage` renders the schedule, `BookingService` manages allocations, and `BookingStore` saves records together. The demo uses selectable student profiles. Real sign-in, organizer controls, handover and a separate notification history are planned for later milestones.
 
 ## The problem
 
