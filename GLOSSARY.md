@@ -1,19 +1,25 @@
-# Campus Equipment Booking
+# Booking terms
 
-**Equipment item**
-One individually identified physical item available for lending.
+## Equipment item
 
-**Slot**
-A published borrowing interval for one equipment item. Its start is inclusive and its end is exclusive for overlap checks.
+One item students can borrow, identified by its own equipment ID.
 
-**Booking**
-A confirmed allocation of a slot to a student.
+## Slot
 
-**Waitlist entry**
-A student's place in the queue for a specific slot.
+A set time to borrow one item. For overlap checks, the start time counts and the end time does not. A slot that ends at 11:00 can be followed by one that starts at 11:00.
 
-**Offer hold**
-An exclusive, temporary allocation of a released slot to one eligible student on the waitlist.
+## Booking
 
-**Active allocation**
-A booking in Confirmed, Collected or Overdue state, or an active offer hold. The project counts these together for the per-student limit.
+A student's confirmed reservation for a slot.
+
+## Waitlist entry
+
+A student's place in the queue for one slot.
+
+## Offer hold
+
+A released slot reserved for one eligible student until they respond or the offer expires.
+
+## Active allocation
+
+The requirements count bookings in Confirmed, Collected or Overdue state and current offer holds toward the limit for each student. In the demo, a booking counts until it is cancelled or its slot ends.

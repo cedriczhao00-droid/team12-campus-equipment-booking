@@ -5,11 +5,11 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -84,7 +84,7 @@ public final class Main {
         Map<String, String> fields = form(new String(body, StandardCharsets.UTF_8));
         String student = fields.getOrDefault("student", "");
         if (!STUDENTS.contains(student)) {
-            send(exchange, 400, "text/plain", "Choose a demo student before booking.");
+            send(exchange, 400, "text/plain", "Choose a demo student and try again.");
             return;
         }
         BookingResult result;
@@ -104,7 +104,7 @@ public final class Main {
         }
         LocalDate date = selectedDate(fields.get("date"), LocalDate.now(clock));
         exchange.getResponseHeaders().set("Location", "/?date=" + date + "&student="
-                + URLEncoder.encode(student, StandardCharsets.UTF_8) + "&result=" + result.name());
+                + student + "&result=" + result.name());
         exchange.sendResponseHeaders(303, -1);
     }
 
@@ -115,8 +115,8 @@ public final class Main {
                 if (!date.isBefore(today) && !date.isAfter(today.plusDays(14))) {
                     return date;
                 }
-            } catch (java.time.format.DateTimeParseException ignored) {
-                // An invalid filter falls back to the default day.
+            } catch (DateTimeParseException ignored) {
+                // Show tomorrow if the date is invalid.
             }
         }
         return today.plusDays(1);

@@ -2,9 +2,15 @@
 
 Software Engineering course project by Team 12 at Macau University of Science and Technology.
 
-## Project status
+## Why we built it
 
-The prototype lets students book an available slot, cancel before it starts, or join a FIFO waiting list. After a cancellation, the first eligible student gets an offer. The offer lasts up to 30 minutes, or until the slot starts if that is sooner. If the student declines or the offer expires, it goes to the next eligible student. Bookings, queue order and offers are saved on disk and remain available after the server restarts.
+In a group chat, equipment requests and cancellations can get buried. Students may miss an opening, and organizers have to keep a separate record and contact students themselves.
+
+## What works now
+
+Students can check the schedule, book a slot and cancel before it starts. They can join the waitlist if a slot is reserved. When someone cancels, the first eligible student in the queue gets an offer. It lasts up to 30 minutes and ends sooner if the slot starts. If the student declines or the offer expires, the next eligible student gets an offer.
+
+The demo uses three student profiles. It saves bookings, queue entries and offers to `data/bookings.tsv`, so they survive a restart. Run one server per data file.
 
 ## Run the prototype
 
@@ -16,7 +22,10 @@ javac --release 17 -encoding UTF-8 -d build $sources
 java -cp build campus.Main
 ```
 
-Open <http://127.0.0.1:8080> and book a future slot as Student A. Switch to Students B and C and join the waiting list for the same slot. Switch back to A and cancel the booking. B can then see the offer and deadline under **Your waitlist**. If B declines, C receives the next offer. The app runs on localhost and saves demo data in `data/bookings.tsv`. Run one server instance per data file.
+1. Open <http://127.0.0.1:8080> and book a future slot as Student A.
+2. Select Student B and click **View schedule**, then join the waitlist for that slot. Repeat as Student C.
+3. Switch back to A, click **View schedule**, and cancel the booking.
+4. Load B's schedule and look under **Your waitlist** for the offer and deadline. Decline the offer, then load C's schedule to see the next offer. C can accept it to book the slot.
 
 Run the booking checks after compiling the application:
 
@@ -27,29 +36,13 @@ java -cp build campus.BookingServiceTest
 java -cp build campus.WaitlistTest
 ```
 
-`Main` handles browser requests, `BookingPage` displays the schedule, `BookingService` manages bookings and offers, and `BookingStore` saves the records. The demo uses selectable student profiles. We still plan to add sign-in, organizer controls, handover and a separate notification history.
+## Project files
 
-## The problem
+`Main` handles browser requests. `BookingPage` displays the schedule from `DemoSchedule`. `BookingService` applies the booking and waitlist rules, and `BookingStore` saves the records.
 
-In a group chat, equipment requests and cancellations can get buried. Students may not know which items are free or notice when a slot opens. Organizers have to keep records and contact students themselves.
+## Project scope
 
-## What we plan to build
-
-We are building a browser-based system where students can check availability, book a slot and join a waiting list. Organizers will use it to manage the schedule and review booking changes.
-
-When someone cancels, the system offers the slot to the next eligible student. It holds the slot until that student accepts, declines or misses the deadline. If the offer is declined or expires, the system passes it to the next eligible student.
-
-## Planned features
-
-- Student and organizer accounts.
-- An equipment catalog showing available booking slots.
-- Booking and cancellation with checks to prevent conflicting reservations.
-- Waiting lists where students can check their position and respond to offers.
-- Notifications within the system and a record of booking changes.
-
-## Initial scope
-
-We start with one campus club or laboratory, track each item separately and use fixed booking slots. The Task 2 requirements describe our borrowing rules. Payments, smart locks, equipment delivery and university account integration are outside the project scope.
+We start with one campus club or lab. Each item has its own fixed booking slots, and students can see their place on a waitlist. The Task 2 requirements describe the borrowing rules. We still plan to add sign-in for students and organizers, tools to manage the schedule and handover, in-app notices and a history of booking changes. Payments, smart locks, delivery and university account integration are outside the project scope.
 
 ## Team
 

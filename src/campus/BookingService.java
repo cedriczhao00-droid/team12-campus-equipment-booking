@@ -36,7 +36,7 @@ enum BookingResult {
     HELD("This slot is held for a student on the waitlist."),
     CLOSED("This slot has already started. Choose a later time."),
     OUTSIDE_WINDOW("This slot is outside the 14-day booking window."),
-    OVERLAP("You already have an allocation that overlaps this time."),
+    OVERLAP("You already have a booking or offer at this time."),
     LIMIT("You already have three active allocations."),
     INVALID_SLOT("This slot does not exist. Refresh the schedule."),
     CANCELLED("Booking cancelled."),
@@ -46,7 +46,7 @@ enum BookingResult {
     OPEN_SLOT("This slot is available. Book it directly."),
     LEFT("You left the waitlist."),
     OFFER_EXPIRED("This offer has expired."),
-    INVALID_ACTION("This record is no longer available for that action.");
+    INVALID_ACTION("This action is no longer available. Refresh the schedule.");
 
     final String message;
 
@@ -57,7 +57,7 @@ enum BookingResult {
 
 final class BookingService {
     private static final int BOOKING_WINDOW_DAYS = 14;
-    private static final int MAX_ACTIVE_BOOKINGS = 3;
+    private static final int MAX_ACTIVE_ALLOCATIONS = 3;
     private static final int MAX_QUEUE_ENTRIES = 5;
     private static final Duration OFFER_WINDOW = Duration.ofMinutes(30);
 
@@ -217,7 +217,7 @@ final class BookingService {
         if (!updated.equals(queue)) save(bookings, updated);
     }
 
-    // The persisted append order is FIFO, including requests arriving in the same clock tick.
+    // Entries stay in join order, even after a restart.
     private void promote(Slot slot, Instant now, List<Booking> nextBookings, List<QueueEntry> nextQueue) {
         if (slot == null || !slot.start().isAfter(now)) return;
         for (int i = 0; i < nextQueue.size(); i++) {
@@ -249,7 +249,7 @@ final class BookingService {
             if (held != null && overlaps(slot, held.start(), held.end())) return BookingResult.OVERLAP;
             active++;
         }
-        return active >= MAX_ACTIVE_BOOKINGS ? BookingResult.LIMIT : null;
+        return active >= MAX_ACTIVE_ALLOCATIONS ? BookingResult.LIMIT : null;
     }
 
     private boolean overlaps(Slot slot, Instant start, Instant end) {

@@ -16,7 +16,7 @@ final class BookingPage {
                 <title>Campus Equipment Desk</title><link rel="stylesheet" href="/style.css"></head><body>
                 <header><span class="ticket" aria-hidden="true">↗</span> Campus Equipment Desk</header>
                 <main><section class="intro"><h1>Book equipment</h1>
-                <p>Choose an available time and collect your equipment at the Media Lab.</p></section>
+                <p>Choose a time to borrow equipment from the Media Lab.</p></section>
                 <form class="filters" action="/" method="get">
                 """);
         page.append("<label>Borrowing date<input type='date' name='date' required min='")
@@ -47,7 +47,7 @@ final class BookingPage {
         }
         page.append("</section><section class='bookings'><h2>Your active bookings</h2>");
         if (active.isEmpty()) {
-            page.append("<p>Choose an available slot above to make a booking.</p>");
+            page.append("<p>You have no active bookings.</p>");
         } else {
             page.append("<ul>");
             for (Booking booking : active) {
@@ -67,7 +67,7 @@ final class BookingPage {
         }
         page.append("</section><section class='bookings'><h2>Your waitlist</h2>");
         if (entries.isEmpty()) {
-            page.append("<p>No active waitlist entries. You can join the waitlist for a reserved slot.</p>");
+            page.append("<p>You are not on any waitlists.</p>");
         } else {
             page.append("<ul>");
             for (QueueEntry entry : entries) {
