@@ -4,7 +4,7 @@ Software Engineering course project by Team 12 at Macau University of Science an
 
 ## Project status
 
-The prototype lets students book an available slot, cancel before it starts, or join a FIFO waiting list. After a cancellation, the first eligible student gets an offer. The offer lasts up to 30 minutes, or until the slot starts if that is sooner. If the student declines or the offer expires, it goes to the next eligible student. Bookings, queue order and offers are saved when the server restarts.
+The prototype lets students book an available slot, cancel before it starts, or join a FIFO waiting list. After a cancellation, the first eligible student gets an offer. The offer lasts up to 30 minutes, or until the slot starts if that is sooner. If the student declines or the offer expires, it goes to the next eligible student. Bookings, queue order and offers are saved on disk and remain available after the server restarts.
 
 ## Run the prototype
 
